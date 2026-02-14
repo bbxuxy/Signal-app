@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signal App (Firebase Edition)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --red-gradient: linear-gradient(135deg, #ff5f6d 0%, #ffc371 100%);
+            --shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        body {
+            font-family: 'Kanit', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: var(--primary-gradient);
+            color: white;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(15px);
+            padding: 2.5rem;
+            border-radius: 40px;
+            box-shadow: var(--shadow);
+            width: 320px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .btn-circle {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            border: none;
+            font-size: 45px;
+            cursor: pointer;
+            margin: 20px;
+            transition: all 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            background: white;
+        }
+
+        .btn-circle:active {
+            transform: scale(0.9);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .btn-red { background: var(--red-gradient); color: white; }
+
+        /* Notification Popup */
+        #notification {
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            color: #333;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-weight: bold;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 9999;
+        }
+        #notification.show { top: 30px; }
+
+        /* Radar Animation */
+        .radar-container {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            margin: 0 auto;
+        }
+        .radar-circle {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 3px solid rgba(255,255,255,0.4);
+            border-radius: 50%;
+            animation: radar 2s infinite linear;
+            opacity: 0;
+            top: 0; left: 0;
+        }
+        @keyframes radar {
+            0% { transform: scale(0.5); opacity: 1; }
+            100% { transform: scale(1.8); opacity: 0; }
+        }
+
+        .page { display: none; }
+        .active { display: block; }
+        h2 { margin-bottom: 25px; letter-spacing: 1px; }
+        .back-btn { background: none; border: none; color: #eee; cursor: pointer; font-size: 14px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="notification">ส่งสัญญาณแล้ว</div>
+
+    <div id="loginPage" class="container page active">
+        <h2>LOGIN</h2>
+        <button class="btn-circle" onclick="goTo('senderPage')">📢</button>
+        <p>บัญชีผู้ส่ง</p>
+        <button class="btn-circle" onclick="goTo('receiverPage')">🌐</button>
+        <p>บัญชีผู้รับ</p>
+    </div>
+
+    <div id="senderPage" class="container page">
+        <button class="back-btn" onclick="goTo('loginPage')">⬅ กลับหน้าหลัก</button>
+        <h2>Sender Mode</h2>
+        <button class="btn-circle btn-red" onclick="triggerSignal()">📢</button>
+        <p>กดเพื่อส่งสัญญาณสีแดง</p>
+    </div>
+
+    <div id="receiverPage" class="container page">
+        <button class="back-btn" onclick="goTo('loginPage')">⬅ กลับหน้าหลัก</button>
+        <h2>Receiver Mode</h2>
+        <div class="radar-container">
+            <div class="radar-circle"></div>
+            <div class="radar-circle" style="animation-delay: 0.7s;"></div>
+            <div class="btn-circle" style="position: relative; z-index: 2; cursor: default;">📢</div>
+        </div>
+        <p id="statusText">กำลังเฝ้าระวัง...</p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // Firebase Configuration (ข้อมูลที่คุณให้มา)
+        const firebaseConfig = {
+            apiKey: "AIzaSyC6tIJOrPCSE6Q2mmFKxYgS4Eqr0X5gZ9w",
+            authDomain: "project-6564497852400117373.firebaseapp.com",
+            projectId: "project-6564497852400117373",
+            storageBucket: "project-6564497852400117373.firebasestorage.app",
+            messagingSenderId: "466118908702",
+            appId: "1:466118908702:web:57013bd63dfdc3fe9cc70f",
+            measurementId: "G-T4FF9X6BKQ",
+            databaseURL: "https://project-6564497852400117373-default-rtdb.firebaseio.com/"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const signalRef = ref(db, 'system/signal');
+
+        // ฟังก์ชันเปลี่ยนหน้า
+        window.goTo = (pageId) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        };
+
+        // --- ส่วนของผู้ส่ง ---
+        window.triggerSignal = () => {
+            // ส่งค่า true ไปที่ Firebase
+            set(signalRef, {
+                active: true,
+                timestamp: Date.now()
+            });
+            showUIFeedback("ส่งสัญญาณแล้ว");
+        };
+
+        // --- ส่วนของผู้รับ ---
+        onValue(signalRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.active === true) {
+                // ถ้าหน้าปัจจุบันคือหน้ารับสัญญาณ
+                if (document.getElementById('receiverPage').classList.contains('active')) {
+                    playBeep();
+                    showUIFeedback("📢 ได้รับสัญญาณแล้ว!");
+                    
+                    // รีเซ็ตค่าใน Database กลับเป็น false หลังจาก 2 วินาที เพื่อรอรับครั้งต่อไป
+                    setTimeout(() => {
+                        set(signalRef, { active: false });
+                    }, 2000);
+                }
+            }
+        });
+
+        // UI Helpers
+        function showUIFeedback(text) {
+            const nav = document.getElementById('notification');
+            nav.innerText = text;
+            nav.classList.add('show');
+            setTimeout(() => nav.classList.remove('show'), 2000);
+        }
+
+        function playBeep() {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+            osc.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+        }
+    </script>
+</body>
+</html>
