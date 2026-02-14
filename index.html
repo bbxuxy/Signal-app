@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signal App (Firebase Edition)</title>
+    <title>Signal App Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;500&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --red-gradient: linear-gradient(135deg, #ff5f6d 0%, #ffc371 100%);
-            --shadow: 0 10px 25px rgba(0,0,0,0.2);
+            --red-gradient: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            --glass: rgba(255, 255, 255, 0.2);
+            --shadow: 0 15px 35px rgba(0,0,0,0.2);
         }
 
         body {
@@ -24,15 +25,52 @@
             overflow: hidden;
         }
 
+        /* การแจ้งเตือนที่เด้งลงมาจากด้านบน */
+        #notification {
+            position: fixed;
+            top: -120px; /* ซ่อนไว้ข้างบน */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 350px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            color: #333;
+            padding: 18px 25px;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            transition: all 0.6s cubic-bezier(0.68, -0.6, 0.32, 1.6);
+            z-index: 10000;
+        }
+
+        #notification.show {
+            top: 25px; /* เลื่อนลงมาแสดง */
+        }
+
+        .noti-icon {
+            font-size: 24px;
+            background: var(--red-gradient);
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            color: white;
+        }
+
         .container {
             text-align: center;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(15px);
-            padding: 2.5rem;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            padding: 3rem 2rem;
             border-radius: 40px;
             box-shadow: var(--shadow);
             width: 320px;
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
         }
 
         .btn-circle {
@@ -42,46 +80,30 @@
             border: none;
             font-size: 45px;
             cursor: pointer;
-            margin: 20px;
-            transition: all 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin-bottom: 10px;
+            transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: inline-flex;
             justify-content: center;
             align-items: center;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
             background: white;
         }
 
+        /* อนิเมชั่นเวลากดให้ยุบลง */
         .btn-circle:active {
-            transform: scale(0.9);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transform: scale(0.85);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
         }
 
         .btn-red { background: var(--red-gradient); color: white; }
 
-        /* Notification Popup */
-        #notification {
-            position: fixed;
-            top: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: white;
-            color: #333;
-            padding: 15px 40px;
-            border-radius: 50px;
-            font-weight: bold;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            z-index: 9999;
-        }
-        #notification.show { top: 30px; }
-
-        /* Radar Animation */
         .radar-container {
             position: relative;
             width: 160px;
             height: 160px;
-            margin: 0 auto;
+            margin: 20px auto;
         }
+
         .radar-circle {
             position: absolute;
             width: 100%;
@@ -89,9 +111,10 @@
             border: 3px solid rgba(255,255,255,0.4);
             border-radius: 50%;
             animation: radar 2s infinite linear;
-            opacity: 0;
             top: 0; left: 0;
+            opacity: 0;
         }
+
         @keyframes radar {
             0% { transform: scale(0.5); opacity: 1; }
             100% { transform: scale(1.8); opacity: 0; }
@@ -99,45 +122,51 @@
 
         .page { display: none; }
         .active { display: block; }
-        h2 { margin-bottom: 25px; letter-spacing: 1px; }
-        .back-btn { background: none; border: none; color: #eee; cursor: pointer; font-size: 14px; margin-bottom: 10px; }
+        h2 { margin: 0 0 30px 0; font-weight: 500; text-transform: uppercase; letter-spacing: 2px; }
+        p { margin: 0 0 20px 0; opacity: 0.8; font-weight: 300; }
+        .back-btn { background: none; border: none; color: #fff; cursor: pointer; margin-bottom: 15px; display: block; width: 100%; }
     </style>
 </head>
 <body>
 
-    <div id="notification">ส่งสัญญาณแล้ว</div>
+    <div id="notification">
+        <div class="noti-icon">📢</div>
+        <div>
+            <div style="font-weight: bold; font-size: 14px;">แจ้งเตือนระบบ</div>
+            <div id="notiMessage" style="font-size: 16px;">ส่งสัญญาณแล้ว</div>
+        </div>
+    </div>
 
     <div id="loginPage" class="container page active">
         <h2>LOGIN</h2>
         <button class="btn-circle" onclick="goTo('senderPage')">📢</button>
-        <p>บัญชีผู้ส่ง</p>
+        <p>บัญชีส่งสัญญาณ</p>
         <button class="btn-circle" onclick="goTo('receiverPage')">🌐</button>
-        <p>บัญชีผู้รับ</p>
+        <p>บัญชีรับสัญญาณ</p>
     </div>
 
     <div id="senderPage" class="container page">
-        <button class="back-btn" onclick="goTo('loginPage')">⬅ กลับหน้าหลัก</button>
-        <h2>Sender Mode</h2>
+        <button class="back-btn" onclick="goTo('loginPage')">⬅ BACK</button>
+        <h2>SENDER</h2>
         <button class="btn-circle btn-red" onclick="triggerSignal()">📢</button>
-        <p>กดเพื่อส่งสัญญาณสีแดง</p>
+        <p>กดปุ่มเพื่อส่งสัญญาณ</p>
     </div>
 
     <div id="receiverPage" class="container page">
-        <button class="back-btn" onclick="goTo('loginPage')">⬅ กลับหน้าหลัก</button>
-        <h2>Receiver Mode</h2>
+        <button class="back-btn" onclick="goTo('loginPage')">⬅ BACK</button>
+        <h2>RECEIVER</h2>
         <div class="radar-container">
             <div class="radar-circle"></div>
             <div class="radar-circle" style="animation-delay: 0.7s;"></div>
             <div class="btn-circle" style="position: relative; z-index: 2; cursor: default;">📢</div>
         </div>
-        <p id="statusText">กำลังเฝ้าระวัง...</p>
+        <p>กำลังสแกนหาตัวรับ...</p>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // Firebase Configuration (ข้อมูลที่คุณให้มา)
         const firebaseConfig = {
             apiKey: "AIzaSyC6tIJOrPCSE6Q2mmFKxYgS4Eqr0X5gZ9w",
             authDomain: "project-6564497852400117373.firebaseapp.com",
@@ -150,6 +179,70 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const signalRef = ref(db, 'system/signal');
+
+        // Discord Webhook URL ที่คุณให้มา
+        const discordWebhookUrl = "https://discord.com/api/webhooks/1472115454255300652/G7isipr6JyyFIqRklSSl5wzeSusVqoQwgJb9AGPceQGpxkvOVSY5CGlk2zrDgkC8cwu_";
+
+        window.goTo = (pageId) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        };
+
+        // --- ฟังก์ชันเมื่อกดส่งสัญญาณ ---
+        window.triggerSignal = () => {
+            // 1. อัปเดต Firebase
+            set(signalRef, { active: true, timestamp: Date.now() });
+
+            // 2. ส่งข้อความไป Discord
+            fetch(discordWebhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    content: "🚨 **สัญญาณถูกส่งออกมาแล้ว!**",
+                    embeds: [{ title: "📢 Signal Alert", color: 16724594, timestamp: new Date().toISOString() }]
+                })
+            });
+
+            showNoti("ส่งสัญญาณแล้ว");
+        };
+
+        // --- ฟังคำสั่งฝั่งผู้รับ ---
+        onValue(signalRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.active === true) {
+                if (document.getElementById('receiverPage').classList.contains('active')) {
+                    playBeep();
+                    showNoti("ได้รับสัญญาณแล้ว!");
+                    
+                    // หน่วงเวลาเพื่อรีเซ็ตค่าในระบบ
+                    setTimeout(() => set(signalRef, { active: false }), 2000);
+                }
+            }
+        });
+
+        function showNoti(text) {
+            const noti = document.getElementById('notification');
+            document.getElementById('notiMessage').innerText = text;
+            noti.classList.add('show');
+            
+            setTimeout(() => {
+                noti.classList.remove('show');
+            }, 2000); // 2 วินาทีแล้วเลื่อนกลับขึ้นไป
+        }
+
+        function playBeep() {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            osc.frequency.setValueAtTime(1200, audioCtx.currentTime); // เสียงตี๊ด
+            osc.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        }
+    </script>
+</body>
+</html>
         const db = getDatabase(app);
         const signalRef = ref(db, 'system/signal');
 
